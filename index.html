@@ -92,13 +92,16 @@
     const nameInput = document.getElementById('nameInput');
     const messageInput = document.getElementById('messageInput');
 
+    let currentUserName = '';
+
     function checkPassword() {
       const input = document.getElementById('passwordInput').value;
       if (input === '.mysecrets123TIARSP') {
         document.getElementById('login').style.display = 'none';
         document.getElementById('chat').style.display = 'flex';
+        currentUserName = nameInput.value.trim();
         loadMessages();
-        startRealtime(); // <- Start realtime after entering password!
+        startRealtime();
       } else {
         alert('Wrong password, try again!');
       }
@@ -132,19 +135,23 @@
       textSpan.textContent = msg.text;
       textSpan.className = 'text';
 
-      const editBtn = document.createElement('button');
-      editBtn.textContent = '✏️';
-      editBtn.style.marginLeft = '10px';
-      editBtn.onclick = () => startEdit(p, msg.id);
+      p.appendChild(nameSpan);
+      p.appendChild(textSpan);
 
+      // ✏️ Only add edit button if it's your message
+      if (msg.name === nameInput.value.trim()) {
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.style.marginLeft = '10px';
+        editBtn.onclick = () => startEdit(p, msg.id);
+        p.appendChild(editBtn);
+      }
+
+      // ❌ Everyone gets a delete button
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '❌';
       deleteBtn.style.marginLeft = '5px';
       deleteBtn.onclick = () => confirmDelete(p, msg.id);
-
-      p.appendChild(nameSpan);
-      p.appendChild(textSpan);
-      p.appendChild(editBtn);
       p.appendChild(deleteBtn);
 
       messagesDiv.appendChild(p);
@@ -154,6 +161,8 @@
       const name = nameInput.value.trim();
       const text = messageInput.value.trim();
       if (!name || !text) return;
+
+      currentUserName = name;
 
       const { data, error } = await client
         .from('messages')
@@ -169,6 +178,7 @@
     function startEdit(p, id) {
       const textSpan = p.querySelector('.text');
       const currentText = textSpan.textContent;
+
       const input = document.createElement('input');
       input.type = 'text';
       input.value = currentText;
