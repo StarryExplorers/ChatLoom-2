@@ -3,6 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>ChatLoom 💬</title>
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log("✅ Service Worker registered!", reg))
+          .catch(err => console.error("❌ SW registration failed:", err));
+      });
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
@@ -113,7 +123,30 @@
     function addMessageToDOM(msg) {
       const p = document.createElement('p');
       p.className = 'msg';
-      p.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+      p.dataset.id = msg.id;
+
+      const nameSpan = document.createElement('strong');
+      nameSpan.textContent = `${msg.name}: `;
+
+      const textSpan = document.createElement('span');
+      textSpan.textContent = msg.text;
+      textSpan.className = 'text';
+
+      const editBtn = document.createElement('button');
+      editBtn.textContent = '✏️';
+      editBtn.style.marginLeft = '10px';
+      editBtn.onclick = () => startEdit(p, msg.id);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '❌';
+      deleteBtn.style.marginLeft = '5px';
+      deleteBtn.onclick = () => confirmDelete(p, msg.id);
+
+      p.appendChild(nameSpan);
+      p.appendChild(textSpan);
+      p.appendChild(editBtn);
+      p.appendChild(deleteBtn);
+
       messagesDiv.appendChild(p);
     }
 
@@ -131,6 +164,58 @@
       } else {
         messageInput.value = '';
       }
+    }
+
+    function startEdit(p, id) {
+      const textSpan = p.querySelector('.text');
+      const currentText = textSpan.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.style.marginLeft = '10px';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾';
+      saveBtn.onclick = async () => {
+        const newText = input.value.trim();
+        if (!newText) return;
+
+        const { error } = await client
+          .from('messages')
+          .update({ text: newText })
+          .eq('id', id);
+
+        if (error) {
+          alert("⚠️ Edit failed!\n\n" + error.message);
+        } else {
+          textSpan.textContent = newText;
+          p.replaceChild(textSpan, input);
+          p.removeChild(saveBtn);
+        }
+      };
+
+      p.replaceChild(input, textSpan);
+      p.appendChild(saveBtn);
+    }
+
+    function confirmDelete(p, id) {
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = '✅ Confirm Delete';
+      confirmBtn.style.marginLeft = '5px';
+      confirmBtn.onclick = async () => {
+        const { error } = await client
+          .from('messages')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          alert("😢 Delete failed!\n\n" + error.message);
+        } else {
+          p.remove();
+        }
+      };
+
+      p.appendChild(confirmBtn);
     }
 
     function startRealtime() {
