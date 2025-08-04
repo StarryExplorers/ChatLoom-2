@@ -62,6 +62,14 @@
     #inputRow input[type="text"] {
       flex-grow: 1;
     }
+    #clearChatBtn {
+      align-self: flex-end;
+      margin-bottom: 0.5rem;
+      background-color: #f66;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -73,7 +81,7 @@
   </div>
 
   <div id="chat">
-    <h2>🌟 ChatLoom</h2>
+    <h2>🌟 ChatLoom <button id="clearChatBtn" onclick="clearChat()">🔌 Clear Chat</button></h2>
     <div id="messages"></div>
     <div id="inputRow">
       <input type="text" id="nameInput" placeholder="Your name..." />
@@ -138,7 +146,6 @@
       p.appendChild(nameSpan);
       p.appendChild(textSpan);
 
-      // ✏️ Only add edit button if it's your message
       if (msg.name === nameInput.value.trim()) {
         const editBtn = document.createElement('button');
         editBtn.textContent = '✏️';
@@ -147,7 +154,6 @@
         p.appendChild(editBtn);
       }
 
-      // ❌ Everyone gets a delete button
       const deleteBtn = document.createElement('button');
       deleteBtn.textContent = '❌';
       deleteBtn.style.marginLeft = '5px';
@@ -226,6 +232,18 @@
       };
 
       p.appendChild(confirmBtn);
+    }
+
+    async function clearChat() {
+      const confirmClear = confirm("Are you sure you want to delete all messages?");
+      if (!confirmClear) return;
+
+      const { error } = await client.from('messages').delete().neq('id', '');
+      if (error) {
+        alert("Clear failed!\n\n" + error.message);
+      } else {
+        loadMessages();
+      }
     }
 
     function startRealtime() {
